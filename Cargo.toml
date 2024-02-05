@@ -1,0 +1,31 @@
+[package]
+name = "bigchaindb-token"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+async-trait = "0.1.75"
+axum = "0.7.2"
+bb8 = "0.8.1"
+diesel = { version = "2.1.4", features = ["postgres"] }
+diesel-async = { version = "0.4.1", features = ["postgres", "bb8"] }
+diesel_migrations = { version = "2.1.0", features = ["postgres"] }
+dotenv = "0.15.0"
+http-body-util = "0.1.0"
+redis = { version = "0.24.0", features = ["tokio-comp", "streams"] }
+reqwest = { version = "0.11.23", features = ["json"] }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
+tokio = { version = "1.35.0", features = ["full"] }
+tower = "0.4.13"
+tower-http = { version = "0.5.0", features = ["trace"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+utoipa = { version = "4.1.0", features = ["axum_extras"] }
+utoipa-rapidoc = { version = "2.0.0", features = ["axum"] }
+utoipa-redoc = { version = "2.0.0", features = ["axum"] }
+utoipa-swagger-ui = { version = "5.0.0", features = ["axum"] }
+bigchaindb = { git = "https://github.com/macroexpansion/bigchaindb-rs" , branch = "main" }
