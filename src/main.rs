@@ -12,7 +12,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use bigchaindb_token::{
     config::Config, database::DatabaseConnPool, doc::ApiDoc, fallback::handler_404,
-    middleware::print_request_response, state::AppState,
+    middleware::print_request_response, modules::wallet, state::AppState,
 };
 
 #[tokio::main]
@@ -38,13 +38,14 @@ async fn main() {
     // init state
     let db_conn_pool = DatabaseConnPool::new(&db_url).await;
     let config = Config::new(db_url, bigchain_url);
-    // let app_state = Arc::new(AppState::new(config, db_conn_pool));
+    let app_state = Arc::new(AppState::new(config, db_conn_pool));
 
     // app
     let app = Router::new()
         // root
         .route("/", get(|| async { "Hello, world!" }))
         // modules' routes
+        .merge(wallet::routes(app_state.clone()))
         // middleware layers
         .layer(middleware::from_fn(print_request_response))
         .layer(
