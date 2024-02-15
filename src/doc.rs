@@ -6,14 +6,18 @@ use crate::modules::{token, wallet};
 #[openapi(
     paths(
         wallet::get_wallet_by_id,
+        wallet::provision_edge_wallet,
     ),
-    components(schemas(
-        wallet::dto::EdgeWallet,
-        wallet::model::Wallet,
-        token::model::Token,
-    )),
+    components(
+        schemas(
+            wallet::dto::ProvisionEdgeWallet,
+            wallet::dto::EdgeWallet,
+            wallet::model::Wallet,
+            token::model::Token,
+        )
+    ),
     tags(
-        (name = "Token", description = "Token")
+        (name = "BigchainDB Token", description = "BigchainDB Token")
     )
 )]
 pub struct ApiDoc;

@@ -17,20 +17,15 @@ use super::dto::{EdgeWallet, ProvisionEdgeWallet};
         ("device-id" = i32, Path, description = "Device ID"),
     ),
     responses(
-        (status = 200, description = "success response", body = WalletAndToken)
+        (status = 200, description = "success response", body = EdgeWallet)
     )
 )]
 pub async fn get_wallet_by_id(
     State(state): State<Arc<AppState>>,
     Path(device_id): Path<i32>,
 ) -> Result<Json<EdgeWallet>, AppError> {
-    todo!()
-    // let result = state
-    //     .service
-    //     .wallet
-    //     .get_wallet_by_device_id(device_id)
-    //     .await?;
-    // Ok(Json(result))
+    let result = state.service.wallet.get_edge_wallet(device_id).await?;
+    Ok(Json(result))
 }
 
 #[utoipa::path(
@@ -38,7 +33,7 @@ pub async fn get_wallet_by_id(
     path = "/wallets",
     tag = "wallets",
     responses(
-        (status = 200, description = "success response", body = WalletAndToken)
+        (status = 200, description = "success response", body = EdgeWallet)
     )
 )]
 pub async fn provision_edge_wallet(

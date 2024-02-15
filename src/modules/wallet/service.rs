@@ -82,6 +82,15 @@ impl WalletService {
         Ok(wallet)
     }
 
+    pub async fn get_edge_wallet(&self, edge_id: i32) -> anyhow::Result<dto::EdgeWallet> {
+        let edge_wallet = self.edge_service.get_edge_to_wallet(edge_id).await?;
+        let src_wallet = self.get_wallet_by_id(edge_wallet.src_wallet_id).await?;
+        let dst_wallet = self.get_wallet_by_id(edge_wallet.dst_wallet_id).await?;
+
+        self.populate_edge_wallet(edge_id, src_wallet, dst_wallet)
+            .await
+    }
+
     pub async fn populate_edge_wallet(
         &self,
         edge_id: i32,
