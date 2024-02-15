@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use diesel::prelude::*;
-use diesel_async::RunQueryDsl;
+use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection, RunQueryDsl};
 
 use crate::{
     config::Config,
@@ -41,17 +41,23 @@ impl EdgeService {
         edge_id: i32,
         src_wallet_id: i32,
         dst_wallet_id: i32,
+        transaction: Option<&mut PooledConnection<'_, AsyncPgConnection>>,
     ) -> anyhow::Result<model::EdgeWallet> {
-        let mut conn = self.pool.get().await.unwrap();
-        let edge = diesel::insert_into(edges_wallets::table)
+        let query = diesel::insert_into(edges_wallets::table)
             .values(model::NewEdgeWallet {
                 edge_id,
                 src_wallet_id,
                 dst_wallet_id,
             })
-            .returning(model::EdgeWallet::as_returning())
-            .get_result(&mut conn)
-            .await?;
+            .returning(model::EdgeWallet::as_returning());
+
+        let edge = if let Some(conn) = transaction {
+            query.get_result(conn).await?
+        } else {
+            let mut conn = self.pool.get().await.unwrap();
+            query.get_result(&mut conn).await?
+        };
+
         Ok(edge)
     }
 }
