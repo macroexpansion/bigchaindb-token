@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use bigchaindb::{ed25519_keypair, json::json};
+use bigchaindb::{
+    ed25519_keypair,
+    json::{self, json},
+};
 use diesel::prelude::*;
 use diesel_async::{
     pooled_connection::bb8::PooledConnection, scoped_futures::ScopedFutureExt, AsyncConnection,
@@ -136,7 +139,11 @@ impl WalletService {
         });
     }
 
-    pub async fn provision_edge_wallet(&self, edge_id: i32) -> anyhow::Result<dto::EdgeWallet> {
+    pub async fn provision_edge_wallet(
+        &self,
+        edge_id: i32,
+        asset: json::Value,
+    ) -> anyhow::Result<dto::EdgeWallet> {
         let edge_wallet = self.get_edge_wallet(edge_id).await;
         if edge_wallet.is_ok() {
             return edge_wallet;
@@ -154,10 +161,10 @@ impl WalletService {
                     diesel::result::Error::RollbackTransaction
                 })?;
 
-                let asset = json!({
-                    "token": "Devr Token",
-                    "num_tokens": Self::INIT_AMOUNT,
-                });
+                // let asset = json!({
+                //     "token": "Devr Token",
+                //     "num_tokens": Self::INIT_AMOUNT,
+                // });
                 let metadata = json!({ "co": "devr" });
                 let token = self
                     .token_service

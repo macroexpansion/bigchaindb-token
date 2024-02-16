@@ -40,9 +40,13 @@ pub async fn provision_edge_wallet(
     State(state): State<Arc<AppState>>,
     Json(body): Json<ProvisionEdgeWallet>,
 ) -> Result<Json<EdgeWallet>, AppError> {
-    let ProvisionEdgeWallet { edge_id } = body;
+    let ProvisionEdgeWallet { edge_id, asset } = body;
     let edge_id = edge_id.parse::<i32>()?;
-    let result = state.service.wallet.provision_edge_wallet(edge_id).await?;
+    let result = state
+        .service
+        .wallet
+        .provision_edge_wallet(edge_id, asset)
+        .await?;
     Ok(Json(result))
 }
 

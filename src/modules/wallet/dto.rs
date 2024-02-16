@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use utoipa::ToSchema;
 
 use crate::modules::{token::model::Token, wallet};
@@ -24,6 +25,7 @@ pub struct EdgeWallet {
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct ProvisionEdgeWallet {
     pub edge_id: String,
+    pub asset: Value,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
