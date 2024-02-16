@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use anyhow::anyhow;
 use bigchaindb::{
     connection::Connection,
     json::{json, Value},
@@ -15,7 +16,10 @@ use crate::{
     modules::wallet::model::Wallet,
 };
 
-use super::model::{NewToken, Token};
+use super::{
+    dto,
+    model::{NewToken, Token},
+};
 
 pub struct TokenService {
     config: Arc<Config>,
@@ -164,5 +168,18 @@ impl TokenService {
         let _tx = conn.post_transaction_commit(signed_tx).await?;
 
         Ok(())
+    }
+
+    pub async fn get_token_asset_bigchaindb(&self, token: &str) -> anyhow::Result<dto::TokenAsset> {
+        let mut conn = Connection::new(vec![&self.config.bigchain]);
+        let tx = conn.get_transaction(token).await?;
+        let asset = tx.asset.ok_or(anyhow!("token has no asset"))?;
+        let asset = asset
+            .get_definition_data()
+            .ok_or(anyhow!("token has no CREATE asset"))?;
+
+        Ok(dto::TokenAsset {
+            asset: asset.clone(),
+        })
     }
 }

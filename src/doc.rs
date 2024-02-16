@@ -8,6 +8,7 @@ use crate::modules::{token, wallet};
         wallet::get_wallet_by_id,
         wallet::provision_edge_wallet,
         wallet::transfer_token,
+        token::get_token_asset,
     ),
     components(
         schemas(
@@ -16,6 +17,7 @@ use crate::modules::{token, wallet};
             wallet::dto::TransferToken,
             wallet::model::Wallet,
             token::model::Token,
+            token::dto::TokenAsset,
         )
     ),
     tags(

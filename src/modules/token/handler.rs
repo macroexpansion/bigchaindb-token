@@ -7,24 +7,27 @@ use axum::{
 
 use crate::{error::AppError, state::AppState};
 
-use super::model::Token;
+use super::dto::TokenAsset;
 
 #[utoipa::path(
     get,
-    path = "/tokens/{pubkey}",
+    path = "/tokens/{token}",
     tag = "tokens",
     params(
-        ("pubkey" = String, Path, description = "Wallet Public Key"),
+        ("token" = String, Path, description = "Token Address"),
     ),
     responses(
-        (status = 200, description = "success response", body = Token)
+        (status = 200, description = "success response", body = TokenAsset)
     )
 )]
-pub async fn get_wallet_by_id(
+pub async fn get_token_asset(
     State(state): State<Arc<AppState>>,
-    Path(device_id): Path<i32>,
-) -> Result<Json<Vec<Token>>, AppError> {
-    // let result = state.service.token.get_token(device_id).await?;
-    // Ok(Json(result))
-    todo!()
+    Path(token): Path<String>,
+) -> Result<Json<TokenAsset>, AppError> {
+    let result = state
+        .service
+        .token
+        .get_token_asset_bigchaindb(&token)
+        .await?;
+    Ok(Json(result))
 }

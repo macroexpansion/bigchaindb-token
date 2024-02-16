@@ -11,8 +11,13 @@ use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
 use bigchaindb_token::{
-    config::Config, database::DatabaseConnPool, doc::ApiDoc, fallback::handler_404,
-    middleware::print_request_response, modules::wallet, state::AppState,
+    config::Config,
+    database::DatabaseConnPool,
+    doc::ApiDoc,
+    fallback::handler_404,
+    middleware::print_request_response,
+    modules::{token, wallet},
+    state::AppState,
 };
 
 #[tokio::main]
@@ -46,6 +51,7 @@ async fn main() {
         .route("/", get(|| async { "Hello, world!" }))
         // modules' routes
         .merge(wallet::routes(app_state.clone()))
+        .merge(token::routes(app_state.clone()))
         // middleware layers
         .layer(middleware::from_fn(print_request_response))
         .layer(
