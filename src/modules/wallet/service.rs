@@ -132,7 +132,7 @@ impl WalletService {
             edge_id,
             src_wallet,
             dst_wallet,
-            token: src_wallet_token.1.token,
+            token: src_wallet_token.1,
         });
     }
 
@@ -145,14 +145,14 @@ impl WalletService {
         let mut conn = self.pool.get().await.unwrap();
         conn.transaction::<_, diesel::result::Error, _>(|conn| {
             async move {
-                let src_wallet = self
-                    .create_wallet(Some(conn))
-                    .await
-                    .map_err(|_| diesel::result::Error::RollbackTransaction)?;
-                let dst_wallet = self
-                    .create_wallet(Some(conn))
-                    .await
-                    .map_err(|_| diesel::result::Error::RollbackTransaction)?;
+                let src_wallet = self.create_wallet(Some(conn)).await.map_err(|e| {
+                    println!("create_dst_wallet: {e:?}");
+                    diesel::result::Error::RollbackTransaction
+                })?;
+                let dst_wallet = self.create_wallet(Some(conn)).await.map_err(|e| {
+                    println!("create_dst_wallet: {e:?}");
+                    diesel::result::Error::RollbackTransaction
+                })?;
 
                 let asset = json!({
                     "token": "Devr Token",
@@ -163,22 +163,81 @@ impl WalletService {
                     .token_service
                     .create_token(&src_wallet, 100, Some(asset), Some(metadata), Some(conn))
                     .await
-                    .map_err(|_| diesel::result::Error::RollbackTransaction)?;
+                    .map_err(|e| {
+                        println!("create_token: {e:?}");
+                        diesel::result::Error::RollbackTransaction
+                    })?;
 
                 let _ = self
                     .wallet_to_token_service
-                    .create_wallet_to_token(src_wallet.id, token.id, Self::INIT_AMOUNT, Some(conn))
+                    .upsert_wallet_token(src_wallet.id, token.id, Self::INIT_AMOUNT, Some(conn))
                     .await
-                    .map_err(|_| diesel::result::Error::RollbackTransaction)?;
+                    .map_err(|e| {
+                        println!("upsert src wallet token: {e:?}");
+                        diesel::result::Error::RollbackTransaction
+                    })?;
                 let _ = self
                     .wallet_to_token_service
-                    .create_wallet_to_token(dst_wallet.id, token.id, 0, Some(conn))
+                    .upsert_wallet_token(dst_wallet.id, token.id, 0, Some(conn))
                     .await
-                    .map_err(|_| diesel::result::Error::RollbackTransaction)?;
+                    .map_err(|e| {
+                        println!("upsert dst wallet token: {e:?}");
+                        diesel::result::Error::RollbackTransaction
+                    })?;
 
                 let _ = self
                     .edge_service
                     .create_edge_to_wallet(edge_id, src_wallet.id, dst_wallet.id, Some(conn))
+                    .await
+                    .map_err(|e| {
+                        println!("create edge to wallet: {e:?}");
+                        diesel::result::Error::RollbackTransaction
+                    })?;
+
+                Ok(())
+            }
+            .scope_boxed()
+        })
+        .await?;
+
+        self.get_edge_wallet(edge_id).await
+    }
+
+    pub async fn transfer_token(&self, edge_id: i32) -> anyhow::Result<dto::EdgeWallet> {
+        let edge_wallet = self.get_edge_wallet(edge_id).await?;
+
+        let _ = self
+            .token_service
+            .transfer_token(
+                &edge_wallet.src_wallet.keypair,
+                &edge_wallet.dst_wallet.keypair,
+                &edge_wallet.token.token,
+                1,
+            )
+            .await?;
+
+        let mut conn = self.pool.get().await.unwrap();
+        conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            async move {
+                let _ = self
+                    .wallet_to_token_service
+                    .upsert_wallet_token(
+                        edge_wallet.src_wallet.keypair.id,
+                        edge_wallet.token.id,
+                        -1,
+                        Some(conn),
+                    )
+                    .await
+                    .map_err(|_| diesel::result::Error::RollbackTransaction)?;
+
+                let _ = self
+                    .wallet_to_token_service
+                    .upsert_wallet_token(
+                        edge_wallet.dst_wallet.keypair.id,
+                        edge_wallet.token.id,
+                        1,
+                        Some(conn),
+                    )
                     .await
                     .map_err(|_| diesel::result::Error::RollbackTransaction)?;
 

@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use bigchaindb::{connection::Connection, json::Value, transaction::Transaction};
+use bigchaindb::{
+    connection::Connection,
+    json::{json, Value},
+    transaction::{Operation, Transaction, UnspentOutput},
+};
+
 use diesel::prelude::*;
 use diesel_async::{pooled_connection::bb8::PooledConnection, AsyncPgConnection, RunQueryDsl};
 
@@ -83,5 +88,81 @@ impl TokenService {
             .create_token_database(&tx.id.clone().unwrap(), transaction)
             .await?;
         Ok(new_token)
+    }
+
+    pub async fn transfer_token(
+        &self,
+        sender: &Wallet,
+        receiver: &Wallet,
+        token: &str,
+        transfer_amount: i32,
+    ) -> anyhow::Result<()> {
+        let mut conn = Connection::new(vec![&self.config.bigchain]);
+
+        let list_outputs = conn.list_outputs(&sender.public_key, Some(false)).await?;
+
+        // find unspent_output of sender's pubkey and token
+        let mut unspent_outputs = Vec::new();
+        for output in list_outputs.iter() {
+            let tx = conn.get_transaction(&output.transaction_id).await?;
+            unspent_outputs.push(UnspentOutput {
+                tx,
+                output_index: output.output_index,
+            })
+        }
+        let unspent_output = unspent_outputs.iter().find(|e| match &e.tx.operation {
+            Some(Operation::CREATE) => {
+                if let Some(id) = &e.tx.id {
+                    return id == token;
+                }
+                false
+            }
+            Some(Operation::TRANSFER) => {
+                if let Some(asset) = &e.tx.asset {
+                    if let Some(id) = asset.get_link_id() {
+                        return id == token;
+                    }
+                }
+                false
+            }
+            None => false,
+        });
+        let unspent_output = unspent_output.unwrap();
+
+        let total_amount = unspent_output.tx.outputs[unspent_output.output_index]
+            .amount
+            .parse::<i32>()?;
+
+        // create transaction output
+        let mut outputs = Vec::new();
+        for (amount, pubkey) in [
+            (total_amount - transfer_amount, &sender.public_key),
+            (transfer_amount, &receiver.public_key),
+        ] {
+            if amount > 0 {
+                outputs.push(Transaction::make_output(
+                    Transaction::make_ed25519_condition(pubkey, true).unwrap(),
+                    amount.to_string(),
+                ));
+            }
+        }
+
+        // make transfer transaction
+        let transfer_tx = Transaction::make_transfer_transaction(
+            vec![unspent_output.clone()],
+            outputs,
+            Some(json!({
+                "transfer_to": &receiver.public_key,
+                "transfer_amount": transfer_amount,
+            })),
+        );
+
+        // signed tranasction with sender's private_key
+        let signed_tx = Transaction::sign_transaction(&transfer_tx, vec![&sender.private_key]);
+
+        // commit tranasction to BigchainDB
+        let _tx = conn.post_transaction_commit(signed_tx).await?;
+
+        Ok(())
     }
 }

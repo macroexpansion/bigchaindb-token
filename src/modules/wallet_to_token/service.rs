@@ -22,7 +22,7 @@ impl WalletTokenService {
         Self { config, pool }
     }
 
-    pub async fn create_wallet_to_token(
+    pub async fn upsert_wallet_token(
         &self,
         wallet_id: i32,
         token_id: i32,

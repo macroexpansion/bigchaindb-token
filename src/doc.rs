@@ -7,11 +7,13 @@ use crate::modules::{token, wallet};
     paths(
         wallet::get_wallet_by_id,
         wallet::provision_edge_wallet,
+        wallet::transfer_token,
     ),
     components(
         schemas(
             wallet::dto::ProvisionEdgeWallet,
             wallet::dto::EdgeWallet,
+            wallet::dto::TransferToken,
             wallet::model::Wallet,
             token::model::Token,
         )
