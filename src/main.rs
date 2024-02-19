@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{body::Body, http::Request, middleware, routing::get, Router};
+use clap::Parser;
 use dotenv::dotenv;
 use tower_http::trace::TraceLayer;
 use tracing::info_span;
@@ -20,13 +21,34 @@ use bigchaindb_token::{
     state::AppState,
 };
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// PostgreSQL URL
+    #[arg(short, long)]
+    postgres: Option<String>,
+
+    /// BigchainDB URL
+    #[arg(short, long)]
+    bigchain: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
+    // args
+    let args = Args::parse();
+
     // env
     dotenv().ok();
-    let db_url = std::env::var("DATABASE_URL").unwrap();
-    let bigchain_url =
-        std::env::var("BIGCHAINDB_URL").unwrap_or("http://localhost:9984/api/v1/".to_string());
+    let db_url = args
+        .postgres
+        .unwrap_or_else(|| std::env::var("DATABASE_URL").unwrap());
+    let bigchain_url = args.bigchain.unwrap_or_else(|| {
+        std::env::var("BIGCHAINDB_URL").unwrap_or("http://localhost:9984/api/v1/".to_string())
+    });
+
+    println!("DATABASE_URL: {:?}", db_url);
+    println!("BIGCHAINDB_URL: {:?}", bigchain_url);
 
     // tracing
     tracing_subscriber::registry()
@@ -34,7 +56,7 @@ async fn main() {
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
                 // axum logs rejections from built-in extractors with the `axum::rejection`
                 // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-                "dreg=debug,tower_http=debug,axum::rejection=trace".into()
+                "bigchaindb-token=debug,tower_http=debug,axum::rejection=trace".into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())
