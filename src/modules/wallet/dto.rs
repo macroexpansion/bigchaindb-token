@@ -23,12 +23,15 @@ pub struct EdgeWallet {
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
+#[schema(example = json!({ "edge_id": "42", "asset": { "name": "Devr Token" } }))]
 pub struct ProvisionEdgeWallet {
     pub edge_id: String,
+    #[schema(value_type = Object)]
     pub asset: Value,
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct TransferToken {
+    #[schema(example = "42")]
     pub edge_id: String,
 }

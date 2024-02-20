@@ -9,6 +9,7 @@ use crate::{error::AppError, state::AppState};
 
 use super::dto::{EdgeWallet, ProvisionEdgeWallet, TransferToken};
 
+/// Get wallet by edge's id
 #[utoipa::path(
     get,
     path = "/wallets/{edge-id}",
@@ -28,6 +29,7 @@ pub async fn get_wallet_by_id(
     Ok(Json(result))
 }
 
+/// Provision new token, source wallet and destination wallet for edge's id
 #[utoipa::path(
     post,
     path = "/wallets",
@@ -50,6 +52,7 @@ pub async fn provision_edge_wallet(
     Ok(Json(result))
 }
 
+/// Transfer token from source wallet to destination wallet
 #[utoipa::path(
     post,
     path = "/wallets/transfer",

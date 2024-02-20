@@ -9,6 +9,7 @@ use crate::{error::AppError, state::AppState};
 
 use super::dto::TokenAsset;
 
+/// Get asset data by token address
 #[utoipa::path(
     get,
     path = "/tokens/{token}",
